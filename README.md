@@ -62,7 +62,7 @@ Building the program:
     make
 
 [![Linux GCC Build Status](https://img.shields.io/github/actions/workflow/status/daniel-starke/thlog/build.yml?label=Linux)](https://github.com/daniel-starke/thlog/actions/workflows/build.yml)
-[![Windows Visual Studio Build Status](https://img.shields.io/appveyor/ci/danielstarke/thlog/master.svg?label=Windows)](https://ci.appveyor.com/project/danielstarke/thlog)    
+[![Windows Visual Studio Build Status](https://img.shields.io/appveyor/ci/danielstarke/thlog/main.svg?label=Windows)](https://ci.appveyor.com/project/danielstarke/thlog)    
 
 Files
 =====
