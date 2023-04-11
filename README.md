@@ -72,6 +72,7 @@ Files
 |**src/arduino/**|**Arduino device firmware for thlog.**
 |arduino.ino     |Main implementation of the device functionality.
 |DHT11.hpp       |DHT11 protocol implementation.
+|DHT22.hpp       |DHT22 protocol implementation.
 |Meta.hpp        |C++11 meta programming helpers (derived from STL).
 |                |
 |**src/utility/**|**Utility functions.**
