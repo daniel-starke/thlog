@@ -3,7 +3,7 @@
  * @author Daniel Starke
  * @copyright Copyright 2019 Daniel Starke
  * @date 2019-06-03
- * @version 2019-06-24
+ * @version 2023-04-10
  */
 #include <limits.h>
 #include <math.h>
@@ -16,7 +16,7 @@
  * forms are supported. Initialize ctx to zero (e.g. with memset) before calling this function the
  * first time. PFS_STOP is returned if the character provided signaled the end of the float. The
  * float can be retrieved from ctx->result.
- * 
+ *
  * @param[in,out] ctx - float parser context
  * @param[in] c - character to process
  * @return  1 - success
@@ -100,7 +100,7 @@ onEnd:
  * integer. No other forms are supported. The parser is case sensitive. Initialize ctx to zero
  * (e.g. with memset) before calling this function the first time. PES_STOP is returned if the
  * character provided signaled the end of the number. The number can be retrieved from ctx->result.
- * 
+ *
  * @param[in,out] ctx - err parser context
  * @param[in] c - character to process
  * @return  1 - success
@@ -115,7 +115,7 @@ int parseErr(tPErrCtx * ctx, const int c) {
 		if (c == 'E') {
 			ctx->state = PES_E__;
 		} else {
-			ctx->state = PFS_ERROR_TOKEN;
+			ctx->state = PES_ERROR_TOKEN;
 			return 0;
 		}
 		break;
@@ -127,7 +127,7 @@ int parseErr(tPErrCtx * ctx, const int c) {
 		if (c == 'r') {
 			ctx->state = PES_ER_;
 		} else {
-			ctx->state = PFS_ERROR_TOKEN;
+			ctx->state = PES_ERROR_TOKEN;
 			return 0;
 		}
 		break;
@@ -135,7 +135,7 @@ int parseErr(tPErrCtx * ctx, const int c) {
 		if (c == 'r') {
 			ctx->state = PES_ERR;
 		} else {
-			ctx->state = PFS_ERROR_TOKEN;
+			ctx->state = PES_ERROR_TOKEN;
 			return 0;
 		}
 		break;
@@ -143,7 +143,7 @@ int parseErr(tPErrCtx * ctx, const int c) {
 		if (c == ':') {
 			ctx->state = PES_INTEGRAL_START;
 		} else {
-			ctx->state = PFS_ERROR_TOKEN;
+			ctx->state = PES_ERROR_TOKEN;
 			return 0;
 		}
 		break;
@@ -180,7 +180,7 @@ int parseErr(tPErrCtx * ctx, const int c) {
  * this function the first time. PFMTS_STOP is returned if the character provided signaled the end
  * of the format code. The type and modifiers can be retrieved from ctx->flags, ctx->width,
  * ctx->precision, ctx->type and ctx->subType.
- * 
+ *
  * @param[in,out] ctx - output format string parser context
  * @param[in] c - character to process
  * @return  1 - success

@@ -4,5 +4,16 @@ M.N.P
 | +---- minor: increased if command-line syntax/semantic breaking changes were applied
 +------ major: increased if elementary changes (from user's point of view) were made
 
+1.1.0 (2023-04-11)
+ - added: DHT22 support in arduino.ino (needs code change by user to enable)
+ - changed: Travis-CI to Github Action
+ - fixed: command-line help wording
+ - fixed: missing documentation part for processData()
+ - fixed: missing check of cfg in processData()
+ - fixed: relative humidity correction calculation upon temperature correction in arduino.ino
+ - fixed: use of wrong enumeration flags in parseErr()
+ - fixed: compile errors related to mapped_parameter_pack in Meta.hpp
+ - fixed: compile warnings when building for STM32CubeDuino
+
 1.0.0 (2019-06-26)
  - first release

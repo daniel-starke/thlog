@@ -3,11 +3,11 @@
  * @author Daniel Starke
  * @copyright Copyright 2019 Daniel Starke
  * @date 2019-02-21
- * @version 2019-05-04
- * 
+ * @version 2023-04-11
+ *
  * Type related helpers usually found in the C++11 standard template library but designed for
  * embedded environments.
- * 
+ *
  * @remarks C++11 or newer is required.
  */
 #ifndef __META_HPP__
@@ -68,7 +68,7 @@ typedef long no_type;
 
 
 /* enable_if */
-template <bool B, typename T = void> struct enable_if {}; 
+template <bool B, typename T = void> struct enable_if {};
 template <typename T> struct enable_if<true, T> { typedef T type; };
 
 
@@ -175,7 +175,7 @@ template <typename T> struct is_same<T, T> : true_type {};
 
 
 /* is_const */
-template <typename> struct is_const : false_type {}; 
+template <typename> struct is_const : false_type {};
 template <typename T> struct is_const<const T> : true_type {};
 
 
@@ -497,8 +497,14 @@ struct conditional_integral_constant<true, T, TrueValue, FalseValue> {
 template <typename T, T TrueValue, T FalseValue>
 struct conditional_integral_constant<false, T, TrueValue, FalseValue> {
 	static_assert(is_integral<T>::value, "Not an integral type.");
-	static const T value = FalseValue; 
+	static const T value = FalseValue;
 };
+
+
+/* is_any_of */
+template <typename T, typename T0, typename ...Ts>
+struct is_any_of : integral_constant<bool, conditional<is_same<T, T0>::value, true_type, is_any_of<T, Ts...> >::type::value> {};
+template <typename T, typename T0> struct is_any_of<T, T0> : is_same<T, T0>::type {};
 
 
 /* decay */
@@ -591,6 +597,27 @@ template <typename F, typename T> struct arguments_of<F T::* volatile> : argumen
 template <typename F, typename T> struct arguments_of<F T::* volatile const> : arguments_of<F> {};
 
 
+/* mapped_parameter_pack */
+struct mapped_parameter_pack_detail {
+	template <typename T, typename ...> struct flatten_mapped_values { typedef T type; };
+	template <typename T> struct flatten_mapped_values<parameter_pack<T>>  { typedef T type; };
+	template <typename ...T0, typename ...T1, typename ...Args>
+	struct flatten_mapped_values<parameter_pack<parameter_pack<T0...>, parameter_pack<T1...>, Args...>>
+		: public flatten_mapped_values<parameter_pack<parameter_pack<T0..., T1...>, Args...>> {};
+};
+/* example for M: template <typename T> struct M { typedef T type; }; */
+#if __cplusplus < 201703L /* until C++17 */
+template <template <typename> class M, typename ...Args>
+#else /* since C++17 */
+template <template <typename> typename M, typename ...Args>
+#endif /* since C++17 */
+struct mapped_parameter_pack {
+	typedef typename mapped_parameter_pack_detail::flatten_mapped_values<
+		parameter_pack<typename M<Args>::type...>
+	>::type type;
+};
+
+
 /* has_member_x */
 #define DEF_HAS_MEMBER(x) \
 	template <typename T> \
@@ -624,23 +651,23 @@ struct tuple_detail {
 		leaf() {}
 		explicit leaf(T val): value(val) {}
 	};
-	
+
 	template <size_t i, typename ...Args> struct impl;
 	template <size_t i> struct impl<i>{};
-	
+
 	template <size_t i, typename T0, typename ...Args>
 	struct impl<i, T0, Args...> : public leaf<i, T0>, public impl<i + 1, Args...> {
 		impl() {}
-		
+
 		explicit impl(T0 a0, Args... args):
 			leaf<i, T0>(a0), impl<i + 1, Args...>(args...)
 		{}
-		
+
 		constexpr size_t size() const {
 			return sizeof...(Args) + 1;
 		}
 	};
-	
+
 	template <typename T> struct unwrap_refwrapper { using type = T; };
 	template <typename T> struct unwrap_refwrapper<reference_wrapper<T>> { using type = T &; };
 	template <typename T> struct special_decay { typename unwrap_refwrapper<typename decay<T>::type>::type type; };
@@ -685,7 +712,7 @@ private:
 		void (* mover)(void * src, void * dest);
 		void (* destroyer)(void *);
 		R (* invoker)(const void * o, Args && ...args);
-		
+
 		template <typename T>
 		static const vtable_t * get() {
 			static const vtable_t vtable = {
@@ -696,12 +723,12 @@ private:
 			return &vtable;
 		}
 	};
-	
+
 	const vtable_t * vtable = NULL;
 	char data[Size];
 public:
 	function_n() {}
-	
+
 	template <
 		typename F,
 		typename DF = typename decay<F>::type,
@@ -714,27 +741,27 @@ public:
 		static_assert(sizeof(DF) <= Size, "Object is too large.");
 		new(&data) DF(forward<F>(f));
 	}
-	
+
 	function_n(function_n && o):
 		vtable(o.vtable)
 	{
 		if (vtable != NULL) vtable->mover(&o.data, &data);
 	}
-	
+
 	~function_n() {
 		if (vtable != NULL) vtable->destroyer(&data);
 	}
-	
+
 	function_n & operator= (function_n && o) {
 		this->~function_n();
 		new(this) function_n(move(o));
 		return *this;
 	}
-	
+
 	explicit operator bool() const {
 		return vtable != NULL;
 	}
-	
+
 	R operator() (Args... args) const {
 		return vtable->invoker(&data, forward<Args>(args)...);
 	}

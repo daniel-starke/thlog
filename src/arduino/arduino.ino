@@ -1,27 +1,39 @@
 /**
- * @file arduino.omp
+ * @file arduino.ino
  * @author Daniel Starke
  * @copyright Copyright 2019 Daniel Starke
  * @date 2019-06-01
- * @version 2019-06-28
+ * @version 2019-08-31
  */
+/** Set to the used DHT type (11 or 22). */
+#define DHT_TYPE 11
+
+
+#if DHT_TYPE == 11
 #include "DHT11.hpp"
+#define DHT DHT11
+#elif DHT_TYPE == 22
+#include "DHT22.hpp"
+#define DHT DHT22
+#else
+#error Invalid value defined for DHT_TYPE.
+#endif
 #include "Meta.hpp"
 #ifdef __AVR__
 #include <avr/power.h>
 #endif /* __AVR__ */
 
 
-/** Defines the PIN DHT11 is connected to. */
-#define DHT11_PIN 20
+/** Defines the PIN DHT11/DHT22 is connected to. */
+#define DHT_PIN 20
 
 
 /** Defines the 1st order calibration value for temperature (max resolution is 0.1f). */
-#define DHT11_TEMP_CAL 0.0f
+#define DHT_TEMP_CAL 0.0f
 
 
 /** Defines the 1st order calibration value for RH (max resolution is 0.1f). */
-#define DHT11_RH_CAL 0.0f
+#define DHT_RH_CAL 0.0f
 
 
 /** Update interval in milliseconds. Should be greater than or equal 1100. */
@@ -42,7 +54,7 @@ template <typename T> typename enable_if<has_member_getDTR<T>::value, bool>::typ
 
 /**
  * Checks if the given serial interface is connected to the host.
- * 
+ *
  * @param[in] ser - serial interface instance
  * @return true if connected, else false
  * @remarks The functions serialGetDtr() and serialDtr() are used to detect the target specific API for this check.
@@ -51,6 +63,19 @@ template <typename T> typename enable_if<has_member_getDTR<T>::value, bool>::typ
 template <typename T>
 bool isSerialConnected(T & ser) {
 	return serialGetDtr(ser);
+}
+
+
+/**
+ * Corrects the relative humidity by the given temperature difference.
+ *
+ * @param[in] RH - original relative humidity
+ * @param[in] T0 - start temperature
+ * @param[in] T1 - end temperature
+ * @return corrected relative humidity
+ */
+static float correctRH(const float RH, const float T0, const float T1) {
+	return RH * expf((4283.77f * (T0 - T1)) / ((243.12f + T0) * (243.12f + T1)));
 }
 
 
@@ -73,7 +98,7 @@ void setup(void) {
 #ifdef LED_BUILTIN_TX
 	pinMode(LED_BUILTIN_TX, INPUT);
 #endif /* LED_BUILTIN_TX */
-	DHT11::begin(DHT11_PIN);
+	DHT::begin(DHT_PIN);
 	Serial.begin(9600);
 	/* wait for serial connection */
 	while ( ! isSerialConnected(Serial) );
@@ -96,13 +121,14 @@ void loop(void) {
 		last += UPDATE_INTERVAL;
 	}
 	/* wait for serial connection */
-	while ( ! isSerialConnected(Serial) ) return;
-	/* retrieve and print sensor values */
-	const DHT11::Result val = DHT11::read(DHT11_PIN);
 	if ( ! isSerialConnected(Serial) ) return;
-	if (val.res == DHT11::SUCCESS) {
-		const float temp = val.getTemp() + DHT11_TEMP_CAL;
-		const float rh   = val.getRH()   + DHT11_RH_CAL;
+	/* retrieve and print sensor values */
+	const DHT::Result val = DHT::read(DHT_PIN);
+	if ( ! isSerialConnected(Serial) ) return;
+	if (val.res == DHT::SUCCESS) {
+		const float rawTemp = val.getTemp();
+		const float temp = rawTemp + DHT_TEMP_CAL;
+		const float rh   = correctRH(val.getRH(), rawTemp, temp) + DHT_RH_CAL;
 		const float sum  = temp + rh; /* checksum */
 		Serial.print(temp, 1);
 		Serial.print('\t');

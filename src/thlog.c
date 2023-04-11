@@ -3,7 +3,7 @@
  * @author Daniel Starke
  * @copyright Copyright 2019 Daniel Starke
  * @date 2019-06-02
- * @version 2019-06-25
+ * @version 2023-04-11
  */
 #include <ctype.h>
 #include <errno.h>
@@ -159,12 +159,12 @@ int _tmain(int argc, TCHAR ** argv) {
 
 	/* ensure that the environment does not change the argument parser behavior */
 	putenv(POSIXLY_CORRECT);
-	
+
 	/* set the file descriptors */
 	fin  = stdin;
 	fout = stdout;
 	ferr = stderr;
-	
+
 #if defined(UNICODE) && defined(PCF_IS_WIN) && !defined(__CYGWIN__)
 	_setmode(_fileno(fout), _O_U16TEXT);
 	_setmode(_fileno(ferr), _O_U16TEXT);
@@ -174,7 +174,7 @@ int _tmain(int argc, TCHAR ** argv) {
 		printHelp();
 		return EXIT_FAILURE;
 	}
-	
+
 	while (1) {
 		const int res = getopt_long(argc, argv, _T(":f:hi:uv"), longOptions, NULL);
 
@@ -247,7 +247,7 @@ int _tmain(int argc, TCHAR ** argv) {
 			abort();
 		}
 	}
-	
+
 	if (optind >= argc) {
 		_ftprintf(ferr, MSGT(MSGT_ERR_OPT_NO_DEVICE));
 		goto onError;
@@ -257,29 +257,29 @@ int _tmain(int argc, TCHAR ** argv) {
 		_ftprintf(ferr, MSGT(MSGT_ERR_NO_MEM));
 		goto onError;
 	}
-	
+
 	/* allocate input buffer */
 	inBuf = malloc(INPUT_BUFFER_SIZE);
 	if (inBuf == NULL) {
 		_ftprintf(ferr, MSGT(MSGT_ERR_NO_MEM));
 		goto onError;
 	}
-	
+
 	/* install signal handlers */
 	signal(SIGINT, handleSignal);
 	signal(SIGTERM, handleSignal);
-	
+
 	/* connect to remote device */
 	remoteConn = ser_create(device, 9600, SFR_8N1, SFC_NONE);
 	if (remoteConn == NULL) {
 		_ftprintf(ferr, MSGT(MSGT_ERR_REMOTE_CONNECT), device);
 		goto onError;
 	}
-	
+
 	/* wait for remote device to connect */
 	delay(1000);
 	ser_clear(remoteConn);
-	
+
 	/* read data and output results once per interval */
 	ret = processData(remoteConn, inBuf, INPUT_BUFFER_SIZE, &config);
 onError:
@@ -314,7 +314,7 @@ static void printHelp(void) {
 	_T("      Displays the licenses for this program.\n")
 #ifdef UNICODE
 	_T("    --utf8\n")
-	_T("      Sets the encoding for error console and log file to UTF-8.\n")
+	_T("      Sets the encoding for error console to UTF-8.\n")
 	_T("      The default is UTF-16.\n")
 #endif /* UNICODE */
 	_T("-u\n")
@@ -334,7 +334,7 @@ static void printHelp(void) {
 
 /**
  * Handles external signals.
- * 
+ *
  * @param[in] signum - received signal number
  */
 static void handleSignal(int signum) {
@@ -346,17 +346,17 @@ static void handleSignal(int signum) {
 
 /**
  * Processes the data from the serial device connected via ser. This function outputs the received
- * data in the
- * 
+ * data with the format string provided on fout.
+ *
  * @param[in,out] ser - serial device handle
  * @param[in,out] inBuf - input buffer to use
  * @param[in] inBufSize - size of inBuf in bytes
  * @param[in] cfg - data processing configuration
  * @return program exit code
- * @remarks Possible error codes are defined in arduino/DHT11.hpp.
+ * @remarks Possible error codes are defined in arduino/DHT11.hpp and arduino/DHT22.hpp.
  */
 static int processData(tSerial * ser, uint8_t * inBuf, const size_t inBufSize, const tConfig * cfg) {
-	if (signalReceived == 0 && (ser == NULL || inBuf == NULL || inBufSize == 0)) return EXIT_FAILURE;
+	if (signalReceived == 0 && (ser == NULL || inBuf == NULL || inBufSize == 0 || cfg == NULL)) return EXIT_FAILURE;
 	enum {
 		ST_TEMP,
 		ST_RH,
@@ -368,7 +368,7 @@ static int processData(tSerial * ser, uint8_t * inBuf, const size_t inBufSize, c
 	tPFloatCtx pFloat;
 	tPErrCtx pErr;
 	time_t intvlStart, now;
-	
+
 	pState = ST_TEMP;
 	temp = 0.0f;
 	rh = 0.0f;
@@ -378,7 +378,7 @@ static int processData(tSerial * ser, uint8_t * inBuf, const size_t inBufSize, c
 	memset(&pFloat, 0, sizeof(pFloat));
 	memset(&pErr, 0, sizeof(pErr));
 	time(&intvlStart);
-	
+
 	while (signalReceived == 0) {
 		errno = 0;
 		const ssize_t res = ser_read(ser, inBuf, inBufSize, TIMEOUT_RESOLUTION);
@@ -477,7 +477,7 @@ static int processData(tSerial * ser, uint8_t * inBuf, const size_t inBufSize, c
 
 /**
  * Outputs the given sensor data.
- * 
+ *
  * @param[in,out] fd - file descriptor to write to
  * @param[in] fmt - format string
  * @param[in] timeInfo - time reference
@@ -506,13 +506,13 @@ static int printData(FILE * fd, const TCHAR * fmt, const struct tm * timeInfo, c
 	const TCHAR * start, * ptr;
 	int last, esc;
 	tPFmtCtx pFmt;
-	
+
 	res = 0;
 	start = fmt;
 	last = 0;
 	esc = 0;
 	memset(&pFmt, 0, sizeof(pFmt));
-	
+
 	for (ptr = fmt; *ptr != 0; ptr++) {
 		const int c = *ptr;
 		if (verbose > 3) _ftprintf(ferr, _T("CHAR:%i '%c', STATE:%s, ESC:%i\n"), c, c, stateStr[pFmt.state], esc);
@@ -590,10 +590,10 @@ static int printData(FILE * fd, const TCHAR * fmt, const struct tm * timeInfo, c
 				buf[(size_t)(ptr - start - 1)] = 'f';
 				buf[(size_t)(ptr - start)] = 0;
 				switch (pFmt.subType) {
-			case 'C': written = _ftprintf(fd, buf, temp); break;
-			case 'F': written = _ftprintf(fd, buf, (temp * 1.8f) + 32.0f); break;
-			case 'H': written = _ftprintf(fd, buf, rh); break;
-			default:
+				case 'C': written = _ftprintf(fd, buf, temp); break;
+				case 'F': written = _ftprintf(fd, buf, (temp * 1.8f) + 32.0f); break;
+				case 'H': written = _ftprintf(fd, buf, rh); break;
+				default:
 					if (verbose > 0) _ftprintf(ferr, MSGT(MSGT_ERR_FMT_SYNTAX), (int)(ptr + 1 - fmt), fmt, ptr + 1);
 					return -1;
 				}

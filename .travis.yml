@@ -1,7 +1,0 @@
-language: cpp
-compiler: gcc
-os: linux
-script:
- - sed -i 's/ -fstack-protector-strong//g' Makefile
- - make clean all DEBUG=0
- - make clean all DEBUG=1

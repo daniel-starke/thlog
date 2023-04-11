@@ -1,27 +1,27 @@
 /**
- * @file DHT11.hpp
+ * @file DHT22.hpp
  * @author Daniel Starke
  * @copyright Copyright 2019 Daniel Starke
- * @date 2019-06-01
+ * @date 2019-08-07
  * @version 2023-04-11
  *
- * DHT11 sensor library.
+ * DHT22 sensor library.
  */
-#ifndef __DHT11_HPP__
-#define __DHT11_HPP__
+#ifndef __DHT22_HPP__
+#define __DHT22_HPP__
 
 #include "Arduino.h"
 
 
 /**
- * Class for reading a DHT11 sensor module.
+ * Class for reading a DHT22 sensor module.
  *
  * @remarks
- * The DHT11 can provide one value per second. More frequent requests will result in an error.
+ * The DHT22 can provide one value per second. More frequent requests will result in an error.
  * The value from the time of the last request is always returned. Be sure to read the value
  * a second time 1100 ms later to get an up-to-date value if the last request was long ago.
  */
-class DHT11 {
+class DHT22 {
 public:
 	/** Possible error codes returned when reading the value. */
 	enum ErrorCode {
@@ -77,7 +77,10 @@ public:
 		 * @return temperature in degrees Celsius
 		 */
 		float getTemp() const {
-			return static_cast<float>(this->tInt) + (static_cast<float>(this->tFrac) * 0.1f);
+			if ((this->tInt & 0x80) != 0) {
+				return -static_cast<float>((static_cast<unsigned int>(this->tInt & 0x7F) << 8) | this->tFrac) * 0.1f;
+			}
+			return static_cast<float>((static_cast<unsigned int>(this->tInt) << 8) | this->tFrac) * 0.1f;
 		}
 
 		/**
@@ -86,14 +89,14 @@ public:
 		 * @return RH in %
 		 */
 		float getRH() const {
-			return static_cast<float>(this->rhInt) + (static_cast<float>(this->rhFrac) * 0.1f);
+			return static_cast<float>((static_cast<unsigned int>(this->rhInt) << 8) | this->rhFrac) * 0.1f;
 		}
 	};
 
 	/**
-	 * Initializes the given pin to read DHT11 sensor data.
+	 * Initializes the given pin to read DHT22 sensor data.
 	 *
-	 * @param[in] pin - pin connected to a DHT11 sensor
+	 * @param[in] pin - pin connected to a DHT22 sensor
 	 */
 	static void begin(const uint8_t pin) {
 		pinMode(pin, OUTPUT);
@@ -101,7 +104,7 @@ public:
 	}
 
 	/**
-	 * Reads the last sensor value from the DHT11 sensor connected to the given pin and stores the
+	 * Reads the last sensor value from the DHT22 sensor connected to the given pin and stores the
 	 * result in the given variable.
 	 *
 	 * @param[out] out - result variable to set
@@ -116,7 +119,7 @@ public:
 	}
 
 	/**
-	 * Reads the last sensor value from the DHT11 sensor connected to the given pin and returns the
+	 * Reads the last sensor value from the DHT22 sensor connected to the given pin and returns the
 	 * result.
 	 *
 	 * @param[in] pin - pin to read from
@@ -132,29 +135,28 @@ public:
 		digitalWrite(pin, HIGH);
 		/* wait for response */
 		pinMode(pin, INPUT);
-		if ( ! DHT11::wait(pin, LOW, 50) ) return Result(static_cast<uint8_t>(TIMEOUT));
+		if ( ! DHT22::wait(pin, LOW, 50) ) return Result(static_cast<uint8_t>(TIMEOUT));
 		/* read response */
 		delayMicroseconds(40);
 		if (digitalRead(pin) != LOW) return Result(static_cast<uint8_t>(NOT_READY));
 		delayMicroseconds(60);
 		if (digitalRead(pin) != HIGH) return Result(static_cast<uint8_t>(NOT_READY));
-		if ( ! DHT11::wait(pin, LOW, 100) ) return Result(static_cast<uint8_t>(TIMING_ERROR));
+		if ( ! DHT22::wait(pin, LOW, 100) ) return Result(static_cast<uint8_t>(TIMING_ERROR));
 		/* read data */
 		uint8_t bitMask = 0x80;
 		uint8_t buf[5] = {0};
 		for (uint8_t i = 0; i < 40; i++, bitMask = uint8_t(bitMask >> 1)) {
-			if ( ! DHT11::wait(pin, HIGH, 80) ) return Result(static_cast<uint8_t>(TIMING_ERROR));
+			if ( ! DHT22::wait(pin, HIGH, 80) ) return Result(static_cast<uint8_t>(TIMING_ERROR));
 			delayMicroseconds(35); /* wait longer than a 0 bit high signal */
 			const bool bit = digitalRead(pin);
 			if (bitMask == 0) bitMask = 0x80;
 			if ( bit ) {
 				buf[i >> 3] |= bitMask;
-				if ( ! DHT11::wait(pin, LOW, 50) ) return Result(static_cast<uint8_t>(TIMING_ERROR));
+				if ( ! DHT22::wait(pin, LOW, 50) ) return Result(static_cast<uint8_t>(TIMING_ERROR));
 			}
 		}
 		/* mask valid bits to reduce bit errors */
 		buf[0] &= 0x7F;
-		buf[2] &= 0x7F; /* no negative temperature supported by DHT11 */
 		/* check parity */
 		if (static_cast<uint8_t>(buf[0] + buf[1] + buf[2] + buf[3]) != buf[4]) {
 			return Result(static_cast<uint8_t>(PARITY_ERROR));
@@ -180,4 +182,4 @@ private:
 };
 
 
-#endif /* __DHT11_HPP__ */
+#endif /* __DHT22_HPP__ */

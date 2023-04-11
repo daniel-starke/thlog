@@ -6,11 +6,11 @@ UNICODE = 1
 
 SRC = $(wildcard src/*.c) $(wildcard src/utility/*.c)
 
-COMMON_CFLAGS = -Wall -Wextra -Wshadow -Wformat -Wconversion -flto -mstackrealign -fno-ident
+COMMON_CFLAGS = -Wall -Wextra -Wshadow -Wformat -Wconversion -mstackrealign -fno-ident
 ifeq (1, $(DEBUG))
- COMMON_CFLAGS += -Og -g3 -ggdb -gdwarf-3 -fvar-tracking-assignments -fbounds-check -fstack-protector-strong
+ COMMON_CFLAGS += -Og -g3 -ggdb -gdwarf-3 -fno-omit-frame-pointer
 else
- COMMON_CFLAGS += -O2 -DNDEBUG
+ COMMON_CFLAGS += -flto -O2 -DNDEBUG
 endif
 PATHS = -Isrc
 SYS := $(shell $(CC) -dumpmachine)

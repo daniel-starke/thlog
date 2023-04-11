@@ -1,0 +1,20 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Prepare
+      run: sed -i 's/ -fstack-protector-strong//g' Makefile
+    - name: Build Release
+      run: make clean all DEBUG=0
+    - name: Build Debug
+      run: make clean all DEBUG=1

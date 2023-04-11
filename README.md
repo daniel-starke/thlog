@@ -31,7 +31,7 @@ Usage
         --license
           Displays the licenses for this program.
         --utf8
-          Sets the encoding for error console and log file to UTF-8.
+          Sets the encoding for error console to UTF-8.
           The default is UTF-16.
     -u
           Display time in UTC instead of local time.
@@ -61,7 +61,7 @@ Building the program:
 
     make
 
-[![Linux GCC Build Status](https://img.shields.io/travis/daniel-starke/thlog/master.svg?label=Linux)](https://travis-ci.org/daniel-starke/thlog)
+[![Linux GCC Build Status](https://img.shields.io/github/actions/workflow/status/daniel-starke/thlog/build.yml?label=Linux)](https://github.com/daniel-starke/thlog/actions/workflows/build.yml)
 [![Windows Visual Studio Build Status](https://img.shields.io/appveyor/ci/danielstarke/thlog/master.svg?label=Windows)](https://ci.appveyor.com/project/danielstarke/thlog)    
 
 Files
